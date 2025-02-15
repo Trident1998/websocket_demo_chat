@@ -2,7 +2,6 @@ package com.example.websocket_demo_chat.client;
 
 import com.example.websocket_demo_chat.Message;
 import lombok.Data;
-import lombok.SneakyThrows;
 import org.springframework.messaging.converter.MappingJackson2MessageConverter;
 import org.springframework.messaging.simp.stomp.StompSession;
 import org.springframework.web.socket.client.standard.StandardWebSocketClient;
@@ -34,7 +33,7 @@ public class MyStompClient {
         stompClient.setMessageConverter(new MappingJackson2MessageConverter());
 
         final var sessionHandler = new MyStompSessionHandler(messageListener, username);
-        final var url = "ws://localhost:8080/ws";
+        final var url = "https://websocket-demo-chat.onrender.com/ws";
 
         this.session = stompClient.connectAsync(url, sessionHandler).get();
     }

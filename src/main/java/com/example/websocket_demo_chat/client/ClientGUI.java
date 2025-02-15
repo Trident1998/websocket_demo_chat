@@ -17,12 +17,23 @@ import java.util.concurrent.ExecutionException;
 
 import static com.example.websocket_demo_chat.client.Utilities.TRANSPERENT_COLOR;
 
-public class ClientGUI extends JFrame implements MessageListener{
+/**
+ * Graphical User Interface (GUI) for the WebSocket chat client.
+ * Implements {@link MessageListener} to handle incoming messages and active user updates.
+ */
+public class ClientGUI extends JFrame implements MessageListener {
     private JPanel connectedUsersPanel, messagePanel;
     private MyStompClient myStompClient;
     private String username;
     private JScrollPane messagePanelScrollPane;
 
+    /**
+     * Constructs the chat client GUI.
+     *
+     * @param username the username of the client
+     * @throws ExecutionException   if the connection setup fails
+     * @throws InterruptedException if the connection setup is interrupted
+     */
     public ClientGUI(String username) throws ExecutionException, InterruptedException {
         super("User: " + username);
         this.username = username;
@@ -31,13 +42,22 @@ public class ClientGUI extends JFrame implements MessageListener{
         setSize(1218, 685);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(DO_NOTHING_ON_CLOSE);
+        setupWindowListeners();
+        getContentPane().setBackground(Utilities.PRIMARY_COLOR);
+        addGuiComponents();
+    }
+
+    /**
+     * Sets up listeners for window closing and resizing events.
+     */
+    private void setupWindowListeners() {
         addWindowListener(new WindowAdapter() {
             @Override
             public void windowClosing(WindowEvent e) {
                 int option = JOptionPane.showConfirmDialog(ClientGUI.this, "Do you really want to leave?",
                         "Exit", JOptionPane.YES_NO_OPTION);
 
-                if(option == JOptionPane.YES_OPTION){
+                if (option == JOptionPane.YES_OPTION) {
                     myStompClient.disconnectUser(username);
                     ClientGUI.this.dispose();
                 }
@@ -50,17 +70,20 @@ public class ClientGUI extends JFrame implements MessageListener{
                 updateMessageSize();
             }
         });
-
-        getContentPane().setBackground(Utilities.PRIMARY_COLOR);
-        addGuiComponents();
     }
 
-    private void addGuiComponents(){
+    /**
+     * Initializes GUI components for chat functionality.
+     */
+    private void addGuiComponents() {
         addConnectedUsersComponents();
         addChatComponents();
     }
 
-    private void addConnectedUsersComponents(){
+    /**
+     * Sets up the panel displaying the list of connected users.
+     */
+    private void addConnectedUsersComponents() {
         connectedUsersPanel = new JPanel();
         connectedUsersPanel.setBorder(Utilities.addPadding(10, 10, 10, 10));
         connectedUsersPanel.setLayout(new BoxLayout(connectedUsersPanel, BoxLayout.Y_AXIS));
@@ -75,11 +98,23 @@ public class ClientGUI extends JFrame implements MessageListener{
         add(connectedUsersPanel, BorderLayout.WEST);
     }
 
-    private void addChatComponents(){
-        JPanel chatPanel = new JPanel();
-        chatPanel.setLayout(new BorderLayout());
+    /**
+     * Sets up the chat panel, including the message display area and input field.
+     */
+    private void addChatComponents() {
+        JPanel chatPanel = new JPanel(new BorderLayout());
         chatPanel.setBackground(TRANSPERENT_COLOR);
 
+        setupMessagePanel();
+        setupInputPanel(chatPanel);
+
+        add(chatPanel, BorderLayout.CENTER);
+    }
+
+    /**
+     * Configures the message panel for displaying chat messages.
+     */
+    private void setupMessagePanel() {
         messagePanel = new JPanel();
         messagePanel.setLayout(new BoxLayout(messagePanel, BoxLayout.Y_AXIS));
         messagePanel.setBackground(TRANSPERENT_COLOR);
@@ -95,42 +130,49 @@ public class ClientGUI extends JFrame implements MessageListener{
                 repaint();
             }
         });
+    }
 
-        chatPanel.add(messagePanelScrollPane, BorderLayout.CENTER);
-
-        JPanel inputPanel = new JPanel();
+    /**
+     * Configures the input field for sending messages.
+     *
+     * @param chatPanel the chat panel to which the input field is added
+     */
+    private void setupInputPanel(JPanel chatPanel) {
+        JPanel inputPanel = new JPanel(new BorderLayout());
         inputPanel.setBorder(Utilities.addPadding(10, 10, 10, 10));
-        inputPanel.setLayout(new BorderLayout());
         inputPanel.setBackground(TRANSPERENT_COLOR);
 
         JTextField inputField = new JTextField();
         inputField.addKeyListener(new KeyAdapter() {
             @Override
             public void keyTyped(KeyEvent e) {
-                if(e.getKeyChar() == KeyEvent.VK_ENTER){
+                if (e.getKeyChar() == KeyEvent.VK_ENTER) {
                     String input = inputField.getText();
-
-                    // edge case: empty message (prevent empty messages)
-                    if(input.isEmpty()) return;
-
-                    inputField.setText("");
-
-                    myStompClient.sendMessage(new Message(username, input));
+                    if (!input.isEmpty()) {
+                        inputField.setText("");
+                        myStompClient.sendMessage(new Message(username, input));
+                    }
                 }
             }
         });
+
         inputField.setBackground(Utilities.SECONDARY_COLOR);
         inputField.setForeground(Utilities.TEXT_COLOR);
         inputField.setBorder(Utilities.addPadding(0, 10, 0, 10));
         inputField.setFont(new Font("Inter", Font.PLAIN, 16));
         inputField.setPreferredSize(new Dimension(inputPanel.getWidth(), 50));
+
         inputPanel.add(inputField, BorderLayout.CENTER);
         chatPanel.add(inputPanel, BorderLayout.SOUTH);
-
-        add(chatPanel, BorderLayout.CENTER);
     }
 
-    private JPanel createChatMessageComponent(Message message){
+    /**
+     * Creates a panel displaying a chat message.
+     *
+     * @param message the chat message to display
+     * @return a JPanel containing the message components
+     */
+    private JPanel createChatMessageComponent(Message message) {
         JPanel chatMessage = new JPanel();
         chatMessage.setBackground(TRANSPERENT_COLOR);
         chatMessage.setLayout(new BoxLayout(chatMessage, BoxLayout.Y_AXIS));
@@ -142,31 +184,37 @@ public class ClientGUI extends JFrame implements MessageListener{
         chatMessage.add(usernameLabel);
 
         JLabel messageLabel = new JLabel();
-        messageLabel.setText("<html>" +
-                "<body style='width:" + (0.60 * getWidth()) + "'px>" +
-                message.message() +
-                "</body>"+
-                "</html>");
+        messageLabel.setText("<html><body style='width:" + (0.60 * getWidth()) + "px'>" +
+                message.message() + "</body></html>");
         messageLabel.setFont(new Font("Inter", Font.PLAIN, 18));
         messageLabel.setForeground(Utilities.TEXT_COLOR);
         chatMessage.add(messageLabel);
-        System.out.println(messageLabel.getText());
 
         return chatMessage;
     }
 
+    /**
+     * Handles an incoming chat message.
+     * Adds the message to the UI and scrolls to the latest message.
+     *
+     * @param message the received message
+     */
     @Override
     public void onMessageRecieve(Message message) {
         messagePanel.add(createChatMessageComponent(message));
         revalidate();
         repaint();
-
         messagePanelScrollPane.getVerticalScrollBar().setValue(Integer.MAX_VALUE);
     }
 
+    /**
+     * Updates the list of active users displayed in the UI.
+     *
+     * @param users the list of currently connected users
+     */
     @Override
     public void onActiveUsersUpdated(List<String> users) {
-        if(connectedUsersPanel.getComponents().length >= 2){
+        if (connectedUsersPanel.getComponents().length >= 2) {
             connectedUsersPanel.remove(1);
         }
 
@@ -174,9 +222,8 @@ public class ClientGUI extends JFrame implements MessageListener{
         userListPanel.setBackground(TRANSPERENT_COLOR);
         userListPanel.setLayout(new BoxLayout(userListPanel, BoxLayout.Y_AXIS));
 
-        for(String user : users){
-            JLabel username = new JLabel();
-            username.setText(user);
+        for (String user : users) {
+            JLabel username = new JLabel(user);
             username.setForeground(Utilities.TEXT_COLOR);
             username.setFont(new Font("Inter", Font.BOLD, 16));
             userListPanel.add(username);
@@ -187,18 +234,17 @@ public class ClientGUI extends JFrame implements MessageListener{
         repaint();
     }
 
-    private void updateMessageSize(){
-        for(int i = 0; i < messagePanel.getComponents().length; i++){
-            Component component = messagePanel.getComponent(i);
-            if(component instanceof JPanel){
+    /**
+     * Updates the width of chat message components when the window is resized.
+     */
+    private void updateMessageSize() {
+        for (Component component : messagePanel.getComponents()) {
+            if (component instanceof JPanel) {
                 JPanel chatMessage = (JPanel) component;
-                if(chatMessage.getComponent(1) instanceof JLabel){
+                if (chatMessage.getComponent(1) instanceof JLabel) {
                     JLabel messageLabel = (JLabel) chatMessage.getComponent(1);
-                    messageLabel.setText("<html>" +
-                            "<body style='width:" + (0.60 * getWidth()) + "'px>" +
-                            messageLabel.getText() +
-                            "</body>"+
-                            "</html>");
+                    messageLabel.setText("<html><body style='width:" +
+                            (0.60 * getWidth()) + "px'>" + messageLabel.getText() + "</body></html>");
                 }
             }
         }
